@@ -22,6 +22,7 @@
 #include "core/zonedetect.h"
 #include "ui/SplashScreen.h"
 #include "core/MembershipQE.h"
+#include "core/CliExport.h"
 #include "service/kstchat/KSTChat.h"
 #include "data/Data.h"
 #include "service/GenericCallbook.h"
@@ -332,6 +333,7 @@ int main(int argc, char* argv[])
     parser.addOption(debugFile);
     parser.addOption(importPending);
     parser.addOption(forceLOVUpdate);
+    CliExport::addOptions(parser);
 
     parser.process(app);
     QString environment = parser.value(environmentName);
@@ -340,6 +342,14 @@ int main(int argc, char* argv[])
     logToFile = parser.isSet(debugFile);
     bool isImportPending = parser.isSet(importPending);
     bool isForceLOVUpdate = parser.isSet(forceLOVUpdate);
+    bool isCliExport = CliExport::isRequested(parser);
+
+    if ( !parser.positionalArguments().isEmpty()
+         && parser.positionalArguments().first() != CliExport::commandName() )
+    {
+        qCritical().noquote() << QMessageBox::tr("Unknown command '%1'.").arg(parser.positionalArguments().first());
+        return 1;
+    }
 
     // If started with --import-pending, wait a bit for the previous instance to fully terminate
     if ( isImportPending )
@@ -391,79 +401,101 @@ int main(int argc, char* argv[])
     AppGuard guard( "QLog" );
     if ( !guard.tryToRun() )
     {
-        QMessageBox::critical(nullptr, QMessageBox::tr("QLog Error"),
-                              QMessageBox::tr("QLog is already running"));
+        if ( isCliExport )
+            qCritical().noquote() << QMessageBox::tr("QLog is already running");
+        else
+            QMessageBox::critical(nullptr, QMessageBox::tr("QLog Error"),
+                                  QMessageBox::tr("QLog is already running"));
         return 1;
     }
 
-    QPixmap pixmap(":/res/qlog.png");
-    SplashScreen splash(pixmap);
+    QScopedPointer<SplashScreen> splash;
+    if ( !isCliExport )
+    {
+        QPixmap pixmap(":/res/qlog.png");
+        splash.reset(new SplashScreen(pixmap));
+        splash->show();
+        splash->ensureFirstPaint();
+    }
 
-    splash.show();
-    splash.ensureFirstPaint();
+    auto showSplashMessage = [&](const QString &message)
+    {
+        if ( splash )
+        {
+            splash->showMessage(message, Qt::AlignBottom|Qt::AlignCenter);
+            QCoreApplication::processEvents();
+        }
+    };
+
+    auto reportError = [&](const QString &message)
+    {
+        if ( isCliExport )
+            qCritical().noquote() << message;
+        else
+            QMessageBox::critical(nullptr, QMessageBox::tr("QLog Error"), message);
+    };
+
+    auto reportWarning = [&](const QString &message)
+    {
+        if ( isCliExport )
+            qWarning().noquote() << message;
+        else
+            QMessageBox::warning(nullptr, QMessageBox::tr("QLog Warning"), message);
+    };
 
     createDataDirectory();
 
     // Process pending database import if exists
     if ( LogDatabase::hasPendingImport() )
     {
-        splash.showMessage(QObject::tr("Importing Database"), Qt::AlignBottom|Qt::AlignCenter);
-        QCoreApplication::processEvents();
+        showSplashMessage(QObject::tr("Importing Database"));
 
         if ( !LogDatabase::instance()->processPendingImport() )
         {
-            QMessageBox::critical(nullptr, QMessageBox::tr("QLog Error"),
-                                  QMessageBox::tr("Failed to process pending database import."));
+            reportError(QMessageBox::tr("Failed to process pending database import."));
             return 1;
         }
 
         if ( LogDatabase::instance()->hadPasswordImportWarning() )
         {
-            QMessageBox::warning(nullptr, QMessageBox::tr("QLog Warning"),
-                                 QMessageBox::tr("The database was imported successfully, but the stored passwords "
-                                                 "could not be restored (decryption failed or the data is corrupted). "
-                                                 "All service passwords have been cleared and must be re-entered in Settings."));
+            reportWarning(QMessageBox::tr("The database was imported successfully, but the stored passwords "
+                                          "could not be restored (decryption failed or the data is corrupted). "
+                                          "All service passwords have been cleared and must be re-entered in Settings."));
         }
     }
     else
     {
-        splash.showMessage(QObject::tr("Opening Database"), Qt::AlignBottom|Qt::AlignCenter);
-
-        QCoreApplication::processEvents();
+        showSplashMessage(QObject::tr("Opening Database"));
 
         if ( ! LogDatabase::instance()->openDatabase() )
         {
-            QMessageBox::critical(nullptr, QMessageBox::tr("QLog Error"),
-                                  QMessageBox::tr("Could not connect to database."));
+            reportError(QMessageBox::tr("Could not connect to database."));
             return 1;
         }
 
-        splash.showMessage(QObject::tr("Backuping Database"), Qt::AlignBottom|Qt::AlignCenter);
-
-        QCoreApplication::processEvents();
+        showSplashMessage(QObject::tr("Backuping Database"));
 
         /* a migration can break a database therefore a backup is call before it */
         if (!DBSchemaMigration::backupAllQSOsToADX())
         {
-            QMessageBox::critical(nullptr, QMessageBox::tr("QLog Error"),
-                                  QMessageBox::tr("Could not export a QLog database to ADIF as a backup.<p>Try to export your log to ADIF manually"));
+            reportError(QMessageBox::tr("Could not export a QLog database to ADIF as a backup.<p>Try to export your log to ADIF manually"));
         }
 
-        splash.showMessage(QObject::tr("Migrating Database"), Qt::AlignBottom|Qt::AlignCenter);
-
-        QCoreApplication::processEvents();
+        showSplashMessage(QObject::tr("Migrating Database"));
 
         if ( ! LogDatabase::instance()->schemaVersionUpgrade(isForceLOVUpdate) )
         {
-            QMessageBox::critical(nullptr, QMessageBox::tr("QLog Error"),
-                                  QMessageBox::tr("Database migration failed."));
+            reportError(QMessageBox::tr("Database migration failed."));
             return 1;
         }
     }
 
-    splash.showMessage(QObject::tr("Starting Application"), Qt::AlignBottom|Qt::AlignCenter);
+    if ( isCliExport )
+    {
+        return CliExport::run(parser);
+    }
 
-    QCoreApplication::processEvents();
+    showSplashMessage(QObject::tr("Starting Application"));
 
     startRigThread();
     startRotThread();
@@ -474,7 +506,7 @@ int main(int argc, char* argv[])
 
     w.setWindowIcon(icon);
 
-    splash.finish(&w);
+    splash->finish(&w);
     w.show();
 
     w.setLayoutGeometry();

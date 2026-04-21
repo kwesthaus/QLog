@@ -58,6 +58,7 @@ SOURCES += \
         core/AlertEvaluator.cpp \
         core/AppGuard.cpp \
         core/CallbookManager.cpp \
+   core/CliExport.cpp \
         core/CredentialStore.cpp \
         core/FileCompressor.cpp \
         core/FldigiTCPServer.cpp \
@@ -205,6 +206,7 @@ HEADERS += \
         core/AlertEvaluator.h \
         core/AppGuard.h \
         core/CallbookManager.h \
+   core/CliExport.h \
         core/CredentialStore.h \
         core/FileCompressor.h \
         core/FldigiTCPServer.h \

@@ -63,6 +63,7 @@ public:
     void setFilterDateRange(const QDate &start, const QDate &end);
     void setFilterMyCallsign(const QString &myCallsing);
     void setFilterMyGridsquare(const QString &myGridsquare);
+    void setFilterMinimumQSOID(qint64 minimumQSOID);
     void setFilterSentPaperQSL(bool includeNo, bool includeIgnore, bool includeAlreadySent);
     void setFilterSendVia(const QString &value);
     void setFilterStationProfile(const StationProfile &profile);
@@ -118,6 +119,7 @@ private:
     QDate filterStartDate, filterEndDate;
     QString filterMyCallsign;
     QString filterMyGridsquare;
+    qint64 filterMinimumQSOID = -1;
     QStringList filterSentPaperQSL;
     QString filterSendVia;
     StationProfile filterStationProfile;

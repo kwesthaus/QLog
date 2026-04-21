@@ -120,6 +120,14 @@ void LogFormat::setFilterMyGridsquare(const QString &myGridsquare)
     this->filterMyGridsquare = myGridsquare;
 }
 
+void LogFormat::setFilterMinimumQSOID(qint64 minimumQSOID)
+{
+    FCT_IDENTIFICATION;
+
+    qCDebug(function_parameters) << minimumQSOID;
+    filterMinimumQSOID = minimumQSOID;
+}
+
 void LogFormat::setFilterSentPaperQSL(bool includeNo, bool includeIgnore, bool includeAlreadySent)
 {
     FCT_IDENTIFICATION;
@@ -188,6 +196,9 @@ QString LogFormat::getWhereClause()
     if ( !filterMyGridsquare.isEmpty() )
         whereClause << "upper(my_gridsquare) = upper(:myGridsquare)";
 
+    if ( filterMinimumQSOID >= 0 )
+        whereClause << "id > :minimumQSOID";
+
     if ( !filterSentPaperQSL.isEmpty() )
         whereClause << QString("upper(qsl_sent) in  (%1)").arg(filterSentPaperQSL.join(", "));
 
@@ -236,6 +247,11 @@ void LogFormat::bindWhereClause(QSqlQuery &query)
     if ( !filterMyGridsquare.isEmpty() )
     {
         query.bindValue(":myGridsquare", filterMyGridsquare);
+    }
+
+    if ( filterMinimumQSOID >= 0 )
+    {
+        query.bindValue(":minimumQSOID", filterMinimumQSOID);
     }
 
     if ( !filterSendVia.isEmpty() )

@@ -82,6 +82,7 @@ SOURCES += \
         core/AdifRecovery.cpp \
         core/AppGuard.cpp \
         core/CallbookManager.cpp \
+   core/CliExport.cpp \
         core/CredentialStore.cpp \
         core/FileCompressor.cpp \
         core/FldigiTCPServer.cpp \
@@ -267,6 +268,7 @@ HEADERS += \
         core/AdifRecovery.h \
         core/AppGuard.h \
         core/CallbookManager.h \
+   core/CliExport.h \
         core/CredentialStore.h \
         core/FileCompressor.h \
         core/FldigiTCPServer.h \

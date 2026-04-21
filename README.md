@@ -64,6 +64,62 @@ For more details, screenshots etc, please, see [QLog Wiki](https://github.com/fo
 Please, used [QLog Issues](https://github.com/foldynl/QLog/issues) for reporting any issue or open a [discussion](https://github.com/foldynl/QLog/discussions).
 You can also use [QLog mailing list](https://groups.io/g/qlog)
 
+## Command-Line ADIF Export
+
+QLog can export contacts to ADIF without opening the main window.
+
+The CLI export uses the same database and the same single-instance rule as the GUI, so it will fail if another QLog instance is already running.
+
+Basic usage:
+
+`qlog export --output /tmp/qlog-export.adi`
+
+Write to standard output instead of a file:
+
+`qlog export --stdout > /tmp/qlog-export.adi`
+
+Apply the basic export filters from the dialog:
+
+`qlog export --output /tmp/april.adi --date-from 2026-04-01 --date-to 2026-04-30 --my-callsign N0CALL --my-grid FN31`
+
+Export only contacts with a QSO ID greater than a specific value:
+
+`qlog export --output /tmp/newer.adi --min-qso-id 5000`
+
+Export only newer contacts and write the maximum exported QSO ID to a file:
+
+`qlog export --output /tmp/newer.adi --min-qso-id 5000 --max-qso-id-file /tmp/qlog-last-id.txt`
+
+Use a saved user-defined filter from QSO Filters:
+
+`qlog export --output /tmp/filtered.adi --user-filter "Worked POTA"`
+
+Combine a station profile with a saved user-defined filter:
+
+`qlog export --output /tmp/profile-filtered.adi --station-profile Home --user-filter "DX Only"`
+
+QSL-oriented export filters are also available:
+
+`qlog export --output /tmp/qsl.adi --type qsl --qsl-send-via bureau --qsl-include-no --qsl-include-invalid`
+
+Available CLI export options:
+
+- `export` enables command-line ADIF export mode.
+- `--output <path>` writes ADIF output to a file.
+- `--stdout` writes ADIF output to standard output.
+- `--date-from <YYYY-MM-DD>` and `--date-to <YYYY-MM-DD>` enable date range filtering.
+- `--min-qso-id <id>` exports only contacts with `id > <id>`.
+- `--max-qso-id-file <path>` writes the maximum exported QSO ID to a file and requires `--min-qso-id`.
+- `--station-profile <name>` filters by station profile.
+- `--my-callsign <callsign>` filters by station callsign.
+- `--my-grid <grid>` filters by my gridsquare.
+- `--user-filter <name>` applies a saved user-defined QSO filter.
+- `--type <generic|qsl>` selects generic export filtering or QSL-oriented filtering.
+- `--qsl-send-via <B|D|E|bureau|direct|electronic|blank>` filters QSL exports by send-via value.
+- `--qsl-include-no` includes `qsl_sent = N` in QSL exports.
+- `--qsl-include-invalid` includes `qsl_sent = I` in QSL exports.
+- `--qsl-include-sent` includes `qsl_sent = Y` in QSL exports.
+
 
 ## Installation
 
